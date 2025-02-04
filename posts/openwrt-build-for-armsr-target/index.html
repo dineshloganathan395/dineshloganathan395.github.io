@@ -644,6 +644,28 @@
 
       
     
+      
+
+      
+      
+
+      
+      
+      
+
+      
+    
+      
+
+      
+      
+
+      
+      
+      
+
+      
+    
 
     
   
@@ -751,9 +773,9 @@
   class="readtime"
   data-bs-toggle="tooltip"
   data-bs-placement="bottom"
-  title="1754 words"
+  title="1869 words"
 >
-  <em>9 min</em> read</span>
+  <em>10 min</em> read</span>
 
         </div>
       </div>
@@ -1088,73 +1110,6 @@ qemu-system-aarch64 -nographic \
 160
 161
 162
-163
-164
-165
-166
-167
-168
-169
-170
-171
-172
-173
-174
-175
-176
-177
-178
-179
-180
-181
-182
-183
-184
-185
-186
-187
-188
-189
-190
-191
-192
-193
-194
-195
-196
-197
-198
-199
-200
-201
-202
-203
-204
-205
-206
-207
-208
-209
-210
-211
-212
-213
-214
-215
-216
-217
-218
-219
-220
-221
-222
-223
-224
-225
-226
-227
-228
-229
 </pre></td><td class="rouge-code"><pre>dinesh@linux:[armsr-armv8]<span class="nv">$ </span>qemu-system-aarch64 <span class="nt">-nographic</span> <span class="se">\</span>
     <span class="nt">-cpu</span> cortex-a53 <span class="nt">-machine</span> virt <span class="se">\</span>
     <span class="nt">-bios</span> u-boot-qemu_armv8/u-boot.bin <span class="se">\</span>
@@ -1317,7 +1272,29 @@ Use the <span class="s2">"passwd"</span> <span class="nb">command </span>to <spa
 For more https://openwrt.org/docs/guide-user/additional-software/opkg-to-apk-cheatsheet
 
 root@OpenWrt:~# 
-root@OpenWrt:~# 
+</pre></td></tr></tbody></table></code></div></div>
+
+<h3 id="openwrt-version-and-board-details"><span class="me-2">OpenWRT version and board details</span><a href="#openwrt-version-and-board-details" class="anchor text-muted"><i class="fas fa-hashtag"></i></a></h3>
+
+<div class="language-bash highlighter-rouge"><div class="code-header">
+        <span data-label-text="Shell"><i class="fas fa-code fa-fw small"></i></span>
+      <button aria-label="copy" data-title-succeed="Copied!"><i class="far fa-clipboard"></i></button></div><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+</pre></td><td class="rouge-code"><pre>root@OpenWrt:~# 
 root@OpenWrt:~# <span class="nb">cat</span> /tmp/sysinfo/board_name 
 linux,dummy-virt
 root@OpenWrt:~# 
@@ -1333,7 +1310,86 @@ root@OpenWrt:~#
 root@OpenWrt:~# <span class="nb">cat</span> /etc/openwrt_version 
 r28739-69890e16b3
 root@OpenWrt:~# 
-root@OpenWrt:~# 
+</pre></td></tr></tbody></table></code></div></div>
+
+<h3 id="network-verification"><span class="me-2">Network Verification:</span><a href="#network-verification" class="anchor text-muted"><i class="fas fa-hashtag"></i></a></h3>
+
+<ul>
+  <li>
+    <p>WAN IP address is getting assigned to eth1 interface in the ifconfig command output</p>
+  </li>
+  <li>
+    <p>Ping verification to 8.8.8.8 and google.com from the openwrt target is successful</p>
+  </li>
+</ul>
+
+<div class="language-bash highlighter-rouge"><div class="code-header">
+        <span data-label-text="Shell"><i class="fas fa-code fa-fw small"></i></span>
+      <button aria-label="copy" data-title-succeed="Copied!"><i class="far fa-clipboard"></i></button></div><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+</pre></td><td class="rouge-code"><pre>root@OpenWrt:~# 
+
 root@OpenWrt:~# ifconfig 
 br-lan    Link encap:Ethernet  HWaddr 52:54:00:12:34:56  
           inet addr:192.168.1.1  Bcast:192.168.1.255  Mask:255.255.255.0
@@ -1372,6 +1428,17 @@ lo        Link encap:Local Loopback
           RX bytes:3713 <span class="o">(</span>3.6 KiB<span class="o">)</span>  TX bytes:3713 <span class="o">(</span>3.6 KiB<span class="o">)</span>
 
 root@OpenWrt:~# 
+root@OpenWrt:~# ping <span class="nt">-c</span> 5 8.8.8.8
+PING 8.8.8.8 <span class="o">(</span>8.8.8.8<span class="o">)</span>: 56 data bytes
+64 bytes from 8.8.8.8: <span class="nb">seq</span><span class="o">=</span>0 <span class="nv">ttl</span><span class="o">=</span>255 <span class="nb">time</span><span class="o">=</span>3.896 ms
+64 bytes from 8.8.8.8: <span class="nb">seq</span><span class="o">=</span>1 <span class="nv">ttl</span><span class="o">=</span>255 <span class="nb">time</span><span class="o">=</span>8.914 ms
+64 bytes from 8.8.8.8: <span class="nb">seq</span><span class="o">=</span>2 <span class="nv">ttl</span><span class="o">=</span>255 <span class="nb">time</span><span class="o">=</span>2.969 ms
+64 bytes from 8.8.8.8: <span class="nb">seq</span><span class="o">=</span>3 <span class="nv">ttl</span><span class="o">=</span>255 <span class="nb">time</span><span class="o">=</span>4.422 ms
+64 bytes from 8.8.8.8: <span class="nb">seq</span><span class="o">=</span>4 <span class="nv">ttl</span><span class="o">=</span>255 <span class="nb">time</span><span class="o">=</span>3.197 ms
+
+<span class="nt">---</span> 8.8.8.8 ping statistics <span class="nt">---</span>
+5 packets transmitted, 5 packets received, 0% packet loss
+round-trip min/avg/max <span class="o">=</span> 2.969/4.679/8.914 ms
 root@OpenWrt:~# 
 root@OpenWrt:~# ping <span class="nt">-c</span> 5 google.com
 PING google.com <span class="o">(</span>216.58.196.174<span class="o">)</span>: 56 data bytes
