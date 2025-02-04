@@ -256,6 +256,11 @@ in order to prevent unauthorized SSH logins.
 For more https://openwrt.org/docs/guide-user/additional-software/opkg-to-apk-cheatsheet
 
 root@OpenWrt:~# 
+```
+
+### OpenWRT version and board details
+
+```bash
 root@OpenWrt:~# 
 root@OpenWrt:~# cat /tmp/sysinfo/board_name 
 linux,dummy-virt
@@ -272,7 +277,17 @@ root@OpenWrt:~#
 root@OpenWrt:~# cat /etc/openwrt_version 
 r28739-69890e16b3
 root@OpenWrt:~# 
+```
+
+### Network Verification:
+
+* WAN IP address is getting assigned to eth1 interface in the ifconfig command output
+
+* Ping verification to 8.8.8.8 and google.com from the openwrt target is successful
+
+```bash
 root@OpenWrt:~# 
+
 root@OpenWrt:~# ifconfig 
 br-lan    Link encap:Ethernet  HWaddr 52:54:00:12:34:56  
           inet addr:192.168.1.1  Bcast:192.168.1.255  Mask:255.255.255.0
@@ -311,6 +326,17 @@ lo        Link encap:Local Loopback
           RX bytes:3713 (3.6 KiB)  TX bytes:3713 (3.6 KiB)
 
 root@OpenWrt:~# 
+root@OpenWrt:~# ping -c 5 8.8.8.8
+PING 8.8.8.8 (8.8.8.8): 56 data bytes
+64 bytes from 8.8.8.8: seq=0 ttl=255 time=3.896 ms
+64 bytes from 8.8.8.8: seq=1 ttl=255 time=8.914 ms
+64 bytes from 8.8.8.8: seq=2 ttl=255 time=2.969 ms
+64 bytes from 8.8.8.8: seq=3 ttl=255 time=4.422 ms
+64 bytes from 8.8.8.8: seq=4 ttl=255 time=3.197 ms
+
+--- 8.8.8.8 ping statistics ---
+5 packets transmitted, 5 packets received, 0% packet loss
+round-trip min/avg/max = 2.969/4.679/8.914 ms
 root@OpenWrt:~# 
 root@OpenWrt:~# ping -c 5 google.com
 PING google.com (216.58.196.174): 56 data bytes
