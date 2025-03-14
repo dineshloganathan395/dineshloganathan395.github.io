@@ -2060,6 +2060,58 @@ FA:30:3B:77:11:84  -49 dBm / -106 dBm (SNR 57)  5950 ms ago
       
       <!-- The comments switcher -->
 
+  
+  <script>
+  var disqus_config = function () {
+    this.page.url = 'https://dineshloganathan395.github.io/posts/build-openwrt-for-ipq-devices/';
+    this.page.identifier = '/posts/build-openwrt-for-ipq-devices/';
+  };
+
+  function addDisqus() {
+    let disqusThread = document.createElement('div');
+    let paragraph = document.createElement('p');
+
+    disqusThread.id = 'disqus_thread';
+    paragraph.className = 'text-center text-muted small';
+    paragraph.innerHTML = 'Comments powered by <a href="https://disqus.com/">Disqus</a>.';
+    disqusThread.appendChild(paragraph);
+
+    const footer = document.querySelector('footer');
+    footer.insertAdjacentElement("beforebegin", disqusThread);
+  }function reloadDisqus(event) {
+    if (event.source === window && event.data && event.data.id === Theme.ID) {if (typeof DISQUS === 'undefined') {
+        return;
+      }
+
+      if (document.readyState == 'complete') {
+        DISQUS.reset({ reload: true, config: disqus_config });
+      }
+    }
+  }
+
+  addDisqus();
+
+  if (Theme.switchable) {
+    addEventListener('message', reloadDisqus);
+  }var disqusObserver = new IntersectionObserver(
+    function (entries) {
+      if (entries[0].isIntersecting) {
+        var d = document,
+          s = d.createElement('script');
+        s.src = 'https://dineshloganathan395.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+
+        disqusObserver.disconnect();
+      }
+    },
+    { threshold: [0] }
+  );
+
+  disqusObserver.observe(document.getElementById('disqus_thread'));
+</script>
+
+
 
     
 
