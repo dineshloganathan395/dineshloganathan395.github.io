@@ -1,0 +1,238 @@
+---
+author: "Dineshkumar_Loganathan"
+date: 2025-03-17 10:00:00 +0530
+description: "This blog will help to run OpenWrt on emulated hardware"
+categories: [blog, tutorial]
+tags: [openwrt, qemu, armsr, wireless, routers]
+---
+= Explore OpenWrt on Emulated hardware
+
+== OpenWrt - An overview
+
+OpenWrt (Open Wireless RouTer) is an open-source project for creating an
+embedded operating systems based on Linux. OpenWrt is designed for embedded
+devices, particularly routers and is capable to run in range of hardware products,
+be it low memory Wi-Fi routers, CPE routers, residential gateways, access points
+and so on. In this article, the possibilities of booting up a
+router operating system like OpenWrt without a physical hardware is unravelled.
+
+**Features of OpenWrt**
+
+Below are the few key features of OpenWrt
+
+* Configuration over command line interface (or) web interface(LuCI)
+* Customization
+* Performance and Stability
+* Advanced Networking Features like firewall, VLAN, VPN, QoS and so on
+* Enhanced Security
+* Mesh Networking
+* Package Management using opkg/apkg package manager
+
+image::/assets/img/posts/OpenWrt_Logo.png[align="center", width=320px]
+
+=== Unleash OpenWrt on non-physical hardware
+
+While OpenWrt is primarily designed for embedded devices like routers, it's not
+strictly limited to real hardware and can also be run in virtual machines (VMs),
+emulator, or on x86 hardware. OpenWrt provides QEMU packages for ARM and x86
+platforms to explore the OS without the need of real hardware's using emulators.
+
+QEMU (Quick EMUlator) is a powerful, open-source processor emulator and
+virtualizer. QEMU can emulate various CPU architectures (like x86, ARM and so
+on) and hardware devices allowing you to run software and operating systems
+designed for those architectures on your current system.
+
+This articles helps us to emulate OpenWrt using qemu in Arm SystemReady target
+
+== Arm SystemReady
+
+`Arm SystemReady (or) armsr` is an openwrt target that is developed based on
+https://community.arm.com/arm-community-blogs/b/architectures-and-processors-blog/posts/arm-systemready[Arm
+SystemReady compliance program] where an Operating System image will be
+compatible across ARM based hardware manufacturers.
+
+Arm SystemReady is implemented in alignment with the two OS environment and
+firmware approaches commonly used to generate and install the OS Images. These
+are split into the following bands
+
+. https://www.arm.com/architecture/system-architectures/systemready-compliance-program/systemready-band[SystemReady band]
+. https://www.arm.com/architecture/system-architectures/systemready-compliance-program/systemready-devicetree-band[SystemReady Devicetree band]
+
+OpenWrt uses the SystemReady Devicetree band, where the preferred method of
+booting the OS is based on the hardware devicetree.
+
+=== Arm SystemReady on OpenWrt
+
+`armsr` takes over from the previous `armvirt` target in OpenWrt and adds
+support for Arm systems that support booting EFI images. armsr supports the below
+subtargets
+
+. armv7 for 32-bit machines
+. armv8 for 64-bit machines
+
+QEMU can be used to emulate `armsr` target running OpenWrt without the needs for
+real hardware.
+
+Refer https://github.com/openwrt/openwrt/tree/main/target/linux/armsr[OpenWrt Target -> armsr -> README]
+to get the detailed instructions on how to boot the OpenWrt SystemReady image.
+
+== Running OpenWrt using qemu
+
+For Running OpenWrt on QEMU, we can use `armsr-armv8` as a reference target to boot
+and analyse OpenWrt OS.
+
+Prebuilt Images are available and can be downloaded from the OpenWrt's Snapshot
+downloads for https://downloads.openwrt.org/snapshots/targets/armsr/armv8/[armsr-armv8].
+
+Download the below image files from the OpenWrt link for emulating armsr target
+using qemu.
+
+. openwrt-armsr-armv8-generic-squashfs-combined-efi.img.gz
+. u-boot-qemu_armv8/u-boot.bin
+
+Decompress the `generic-squashfs-combined-efi.img.gz` into `openwrt-arm-64.img`
+
+[source,sh]
+----
+gunzip -c openwrt-armsr-armv8-generic-squashfs-combined-efi.img.gz > openwrt-arm-64.img
+----
+
+Emulate OpenWrt for armsr-armv8 target using `qemu-system-aarch64` command with
+the default arguments for kernel, rootfs image, cpu and network options.
+
+[source,sh]
+----
+qemu-system-aarch64 -nographic \
+    -cpu cortex-a53 -machine virt \
+    -bios u-boot.bin \
+    -smp 1 -m 1024 \
+    -device virtio-rng-pci \
+    -drive file=openwrt-arm-64.img,format=raw,index=0,media=disk \
+    -netdev user,id=testlan -net nic,netdev=testlan \
+    -netdev user,id=testwan -net nic,netdev=testwan
+----
+
+=== Walkthrough OpenWrt bootlog for armsr-armv8
+
+* OpenWrt is successfully booted for armsr-armv8 target.
+
+* Below excerpt from the OpenWrt bootlog, covers the following stages of booting,
+	** Booting : U-Boot
+	** Booting : Linux kernel with version `Linux version 6.6.83`
+	** OpenWrt prompt
+
+[source,sh]
+------
+U-Boot 2023.04-OpenWrt-r29028-adc4d95c74 (Mar 16 2025 - 21:43:02 +0000)
+
+DRAM:  1 GiB
+Core:  51 devices, 14 uclasses, devicetree: board
+Flash: 64 MiB
+Loading Environment from Flash... *** Warning - bad CRC, using default environment
+
+In:    pl011@9000000
+Out:   pl011@9000000
+Err:   pl011@9000000
+Net:   eth0: virtio-net#32, eth1: virtio-net#33
+Hit any key to stop autoboot:  0
+
+.... skipped ....
+
+EFI stub: Booting Linux Kernel...
+EFI stub: Using DTB from configuration table
+EFI stub: Exiting boot services...
+[    0.000000] Booting Linux on physical CPU 0x0000000000 [0x410fd034]
+[    0.000000] Linux version 6.6.83 (builder@buildhost) (aarch64-openwrt-linux-musl-gcc (OpenWrt GCC 13.3.0 r29028-adc4d95c74) 13.3.0, GNU ld (GNU Binutils) 2.42) #0 SMP Sun Mar 16 21:43:02 2025
+[    0.000000] KASLR enabled
+[    0.000000] Machine model: linux,dummy-virt
+
+.... skipped ....
+
+[    0.004525] printk: console [tty1] enabled
+[    0.004786] printk: bootconsole [pl11] disabled
+Please press Enter to activate this console.
+
+BusyBox v1.37.0 (2025-03-16 21:43:02 UTC) built-in shell (ash)
+
+  _______                     ________        __
+ |       |.-----.-----.-----.|  |  |  |.----.|  |_
+ |   -   ||  _  |  -__|     ||  |  |  ||   _||   _|
+ |_______||   __|_____|__|__||________||__|  |____|
+          |__| W I R E L E S S   F R E E D O M
+ -----------------------------------------------------
+ OpenWrt SNAPSHOT, r29028-adc4d95c74
+ -----------------------------------------------------
+=== WARNING! =====================================
+There is no root password defined on this device!
+Use the "passwd" command to set up a new password
+in order to prevent unauthorized SSH logins.
+ -----------------------------------------------------
+
+root@OpenWrt:~#
+------
+
+**OpenWrt version and board details**
+
+* The openwrt version and board_name related details from the ARMSR system,
+
+[source,sh]
+------
+root@OpenWrt:~# cat /etc/openwrt_release
+DISTRIB_ID='OpenWrt'
+DISTRIB_RELEASE='SNAPSHOT'
+DISTRIB_REVISION='r29028-adc4d95c74'
+DISTRIB_TARGET='armsr/armv8'
+DISTRIB_ARCH='aarch64_generic'
+DISTRIB_DESCRIPTION='OpenWrt SNAPSHOT r29028-adc4d95c74'
+DISTRIB_TAINTS=''
+root@OpenWrt:~# cat /etc/openwrt_version
+r29028-adc4d95c74
+root@OpenWrt:~# cat /tmp/sysinfo/board_name
+linux,dummy-virt
+------
+
+**Ethernet**
+
+* IP Address is assigned to the WAN Interface of the Target device.
+* And Target device could able to reach Internet through WAN Network.
+
+[source,sh]
+------
+root@OpenWrt:~# ifconfig eth1
+eth1      Link encap:Ethernet  HWaddr 52:54:00:12:34:57
+          inet addr:10.0.2.15  Bcast:10.0.2.255  Mask:255.255.255.0
+          inet6 addr: fec0::5054:ff:fe12:3457/64 Scope:Site
+          inet6 addr: fe80::5054:ff:fe12:3457/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:184 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:229 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000
+          RX bytes:17075 (16.6 KiB)  TX bytes:22998 (22.4 KiB)
+
+root@OpenWrt:~# ping 8.8.8.8
+PING 8.8.8.8 (8.8.8.8): 56 data bytes
+64 bytes from 8.8.8.8: seq=0 ttl=255 time=8.390 ms
+.... skipped ....
+
+root@OpenWrt:~# ping -c 3 google.com
+PING google.com (142.250.196.78): 56 data bytes
+64 bytes from 142.250.196.78: seq=0 ttl=255 time=5.849 ms
+64 bytes from 142.250.196.78: seq=1 ttl=255 time=8.664 ms
+64 bytes from 142.250.196.78: seq=2 ttl=255 time=8.852 ms
+
+--- google.com ping statistics ---
+3 packets transmitted, 3 packets received, 0% packet loss
+round-trip min/avg/max = 5.849/7.788/8.852 ms
+------
+
+== A New OpenWrt Beginning
+
+With OpenWrt running on qemu, It opens up a way to explore OpenWrt without real
+hardware and allows for endless option to tweak and tune your experiments.
+
+== References
+
+  * https://www.qemu.org/docs/master/system/target-arm.html
+  * https://openwrt.org/docs/guide-user/virtualization/qemu
+  * https://github.com/ARM-software/arm-systemready
+  * https://community.arm.com/arm-community-blogs/b/architectures-and-processors-blog/posts/arm-systemready
