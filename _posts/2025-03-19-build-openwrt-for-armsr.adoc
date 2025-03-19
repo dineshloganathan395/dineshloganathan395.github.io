@@ -1,0 +1,222 @@
+---
+author: "Dineshkumar_Loganathan"
+date: 2025-03-19 10:00:00 +0530
+description: "This blog will help to build OpenWrt firmware for armsr target"
+categories: [blog, tutorial]
+tags: [openwrt, qemu, armsr, wireless, routers]
+---
+= Build your own OpenWrt firmware for armsr target
+
+In the previous article https://dineshloganathan395.github.io/posts/explore-openwrt-on-emulated-hardware/[Explore OpenWrt on Emulated hardware],
+We have seen how to explore OpenWrt without a real hardware. OpenWrt is emulated
+using qemu for armsr target with the pre-built image from OpenWrt's Snapshot
+downloads for armsr-armv8. In this article, we can build our own custom Images
+for armsr target using https://github.com/openwrt/openwrt[OpenWrt Build]
+and can emulate OpenWrt using qemu with the custom generated image.
+
+Building your own OpenWrt firmware has several advantages like
+
+1. Explore OpenWrt components, features and packages
+2. Explore the build system and architecture
+3. Explore new features which are not part of the pre-built images
+4. Optimize the OpenWrt firmware by having only the mandatory packages
+5. Build firmware with custom changes to understand the feature better
+6. Develop and Implement new features in OpenWrt
+7. Bring-up new hardware support in OpenWrt
+
+image::/assets/img/posts/OpenWrt_Logo.png[align="center", width=320px]
+
+== Build OpenWrt for armsr-armv8
+
+**Development**
+
+To build your own firmware you need a GNU/Linux, BSD or macOS system (case
+sensitive filesystem required). Cygwin is unsupported because of the lack of a
+case sensitive file system.
+
+**Requirements**
+
+You need the following tools to compile OpenWrt, the package names vary between
+distributions. A complete list with distribution specific packages is found in
+the https://openwrt.org/docs/guide-developer/build-system/install-buildsystem[Build System Setup]
+documentation.
+
+[source,sh]
+----
+binutils bzip2 diff find flex gawk gcc-6+ getopt grep install libc-dev libz-dev
+make4.1+ perl python3.7+ rsync subversion unzip which
+----
+
+=== OpenWrt repo initialization
+
+* Clone the OpenWRT repo using the command
+
+[source,sh]
+----
+git clone https://github.com/openwrt/openwrt.git
+cd openwrt
+----
+
+=== Checkout to Latest Stable release (optional)
+
+* Checkout to OpenWrt latest stable release - v24.10.0
+
+[source,sh]
+----
+git checkout v24.10.0
+----
+
+=== Update & Install feeds
+
+1. Run `./scripts/feeds update -a` to obtain all the latest package definitions
+   defined in feeds.conf / feeds.conf.default
+
+2. Run `./scripts/feeds install -a` to install symlinks for all obtained
+   packages into package/feeds/
+
+=== Configure Build Target profile
+
+* Select and save armsr target profile using the **make menuconfig** command in the below sequence
+
+[source,sh]
+----
+1. Target System -> Arm SystemReady (EFI) compliant
+2. Subtarget -> 64-bit (armv8) machines
+3. Target Profile -> Generic EFI Boot
+4. Save -> .config
+5. Exit -> Yes
+----
+
+=== Trigger OpenWrt build
+
+* Execute the below command to trigger the OpenWrt build
+
+[source,bash]
+----
+make V=e -j$(nproc)
+----
+
+=== Build Artifacts
+
+List of OpenWrt Firmware Images generated for armsr devices
+
+* **Kernel & Rootfs Image** - bin/targets/armsr/armv8/openwrt-armsr-armv8-generic-squashfs-combined-efi.img.gz
+* **u-boot Image** - bin/targets/armsr/armv8/u-boot-qemu_armv8/u-boot.bin
+
+== Running OpenWrt using qemu with generated Images
+
+In the bin directory of the OpenWrt build, Decompress the
+`openwrt-armsr-armv8-generic-squashfs-combined-efi.img.gz` into `openwrt-arm-64.img`
+
+[source,sh]
+----
+cd bin/targets/armsr/armv8/
+
+gunzip -c openwrt-armsr-armv8-generic-squashfs-combined-efi.img.gz > openwrt-arm-64.img
+----
+
+Emulate OpenWrt for armsr-armv8 target using `qemu-system-aarch64` command with
+the default arguments for kernel, rootfs image, cpu and network options.
+
+[source,sh]
+----
+qemu-system-aarch64 -nographic \
+    -cpu cortex-a53 -machine virt \
+    -bios u-boot-qemu_armv8/u-boot.bin \
+    -smp 1 -m 1024 \
+    -device virtio-rng-pci \
+    -drive file=openwrt-arm-64.img,format=raw,index=0,media=disk \
+    -netdev user,id=testlan -net nic,netdev=testlan \
+    -netdev user,id=testwan -net nic,netdev=testwan 
+----
+
+=== Walkthrough OpenWrt bootlog for armsr-armv8
+
+* OpenWrt is successfully booted for armsr-armv8 target with our custom Image.
+
+* Below excerpt from the OpenWrt bootlog, covers the following stages of booting,
+  ** Booting : U-Boot
+  ** Booting : Linux kernel with version `Linux version 6.6.73`
+  ** OpenWrt prompt
+
+[source,sh]
+----
+U-Boot 2023.04-OpenWrt-r28427-6df0e3d02a (Feb 03 2025 - 23:09:37 +0000)
+
+DRAM:  1 GiB
+Core:  51 devices, 14 uclasses, devicetree: board
+Flash: 64 MiB
+Loading Environment from Flash... *** Warning - bad CRC, using default environment
+
+In:    pl011@9000000
+Out:   pl011@9000000
+Err:   pl011@9000000
+Net:   eth0: virtio-net#32, eth1: virtio-net#33
+Hit any key to stop autoboot:  0
+
+.... skipped ....
+
+EFI stub: Booting Linux Kernel...
+EFI stub: Using DTB from configuration table
+EFI stub: Exiting boot services...
+[    0.000000] Booting Linux on physical CPU 0x0000000000 [0x410fd034]
+[    0.000000] Linux version 6.6.73 (user@linux) (aarch64-openwrt-linux-musl-gcc (OpenWrt GCC 13.3.0 r28427-6df0e3d02a) 13.3.0, GNU ld (GNU Binutils) 2.42) #0 SMP Mon Feb  3 23:09:37 2025
+[    0.000000] KASLR enabled
+[    0.000000] Machine model: linux,dummy-virt
+
+.... skipped ....
+
+[    0.002194] printk: console [tty1] enabled
+[    0.002466] printk: bootconsole [pl11] disabled
+Please press Enter to activate this console.
+
+BusyBox v1.36.1 (2025-02-03 23:09:37 UTC) built-in shell (ash)
+
+  _______                     ________        __
+ |       |.-----.-----.-----.|  |  |  |.----.|  |_
+ |   -   ||  _  |  -__|     ||  |  |  ||   _||   _|
+ |_______||   __|_____|__|__||________||__|  |____|
+          |__| W I R E L E S S   F R E E D O M
+ -----------------------------------------------------
+ OpenWrt 24.10.0, r28427-6df0e3d02a
+ -----------------------------------------------------
+=== WARNING! =====================================
+There is no root password defined on this device!
+Use the "passwd" command to set up a new password
+in order to prevent unauthorized SSH logins.
+--------------------------------------------------
+
+root@OpenWrt:~#
+----
+
+**Kernel and OpenWrt version**
+
+* Kernel and OpenWrt version related details from the ARMSR system based on the custom generated Image
+
+[source,sh]
+----
+root@OpenWrt:~# cat /etc/openwrt_release
+DISTRIB_ID='OpenWrt'
+DISTRIB_RELEASE='24.10.0'
+DISTRIB_REVISION='r28427-6df0e3d02a'
+DISTRIB_TARGET='armsr/armv8'
+DISTRIB_ARCH='aarch64_generic'
+DISTRIB_DESCRIPTION='OpenWrt 24.10.0 r28427-6df0e3d02a'
+DISTRIB_TAINTS='no-all'
+root@OpenWrt:~# uname -a
+Linux OpenWrt 6.6.73 #0 SMP Mon Feb  3 23:09:37 2025 aarch64 GNU/Linux
+----
+
+== Unlocking New Explorations in OpenWrt
+
+With OpenWrt running on qemu with our custom built Image, It opens up a way to
+build, modify, test existing OpenWrt packages (or) Create a new packages which
+can be executed/validated on the emulated hardware and allows for endless option
+to learn OpenWrt and its build system.
+
+== References
+
+  * https://dineshloganathan395.github.io/posts/explore-openwrt-on-emulated-hardware
+  * https://github.com/openwrt/openwrt
+  * https://openwrt.org/docs/guide-developer/toolchain/buildsystem_essentials
+  * https://openwrt.org/docs/guide-developer/toolchain/use-buildsystem
