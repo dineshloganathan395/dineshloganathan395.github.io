@@ -112,6 +112,8 @@
       ></script>
     {% endif %}
 
+  {% endif %}
+
     <!-- Web Analytics -->
     {% for analytics in site.analytics %}
       {% capture str %}{{ analytics }}{% endcapture %}
@@ -120,7 +122,6 @@
         {% include analytics/{{ platform }}.html %}
       {% endif %}
     {% endfor %}
-  {% endif %}
 
   {% include metadata-hook.html %}
 </head>
