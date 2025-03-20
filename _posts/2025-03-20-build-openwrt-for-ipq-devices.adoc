@@ -1,0 +1,270 @@
+---
+author: "Dineshkumar_Loganathan"
+date: 2025-03-20 10:00:00 +0530
+description: "This blog will help to build OpenWRT firmware for IPQ devices using feed-ipq"
+categories: [blog, tutorial]
+tags: [openwrt, feed-ipq, wireless, routers]
+---
+= Build your own OpenWrt firmware for IPQ devices
+
+== OpenWrt - An overview
+
+OpenWrt is a Linux based Open-source Operating system which are primarily used
+on wireless routers and mesh devices. For users, OpenWrt means the freedom of
+full customization, allowing the use of an embedded device in ways the vendor
+never envisioned. Designed to be lightweight and efficient, OpenWrt is capable
+to run in range of hardware products, be it low memory Wi-Fi routers, CPE routers and
+so on.
+
+OpenWrt supports a wide range of System-on-Chip (SoC) vendors including but not
+limited to Airoha, Broadcom, MediaTek, Qualcomm, Realtek. SoC vendor prefers
+OpenWrt based Operating System for their Wireless Routers, since it provides
+Various customization, Package management, Better Security features and a great
+Community support.
+
+For Wireless chipsets in the routers, OpenWrt uses upstream/open-source version
+of network drivers and packages for their respective chipsets which are freely
+available and published into the open-source community.
+
+Along with open-source contributions, SoC Vendors focus on developing the latest
+features, Enhancements and Bug fixes. While most of the features are published
+to the open-source community, Vendor specific features will be available only in
+through their External release repos until the packages and patches are
+upstreamed to the community.
+
+image::/assets/img/posts/OpenWrt_Logo.png[align="center", width=320px]
+
+== Qualcomm Internet Processor (IPQ) in Wi-Fi Product line
+
+Qualcomm is one of the leading SoC vendors for most of the wireless routers.
+Qualcomm Internet Processor (IPQ) refers to a series of System-on-Chip (SoC)
+designed specifically for Wi-Fi networking devices like routers, gateways and
+access points. IPQ807X, IPQ95XX and IPQ53XX are few of the latest Qualcomm SoC's
+series available in the market and are utilized in the various enterprise,
+retail and carrier broadband products.
+
+Qualcomm Wi-Fi chipset details are available in the https://wikidevi.wi-cat.ru/Qualcomm[Wiki Page].
+
+Qualcomm provides releases to the Customer and open-source community for IPQ
+devices through Codelinaro website, whose source code can be downloaded based
+on the details https://wiki.codelinaro.org/en/clo/qsdk/overview[here].
+
+== feed-ipq : Collection of package recipes for IPQ devices
+
+`feed-ipq` is an OpenWrt feed repository which helps to build latest OpenWrt
+firmware for Qualcomm Wi-Fi SoC platforms (IPQ Devices), which is on-par with
+the latest release from Qualcomm. This feed can be easily integrated into
+OpenWrt and OpenWrt based build systems like prplOS, IOWRT and openWiFi.
+
+`feed-ipq` is available at, https://github.com/zilogic-systems/feed-ipq
+
+`feed-ipq` is intended to be layered on-top of an OpenWrt providing only the
+required packages and files relevant for bring-up of the networking and Wi-Fi
+features in the IPQ devices. This repository contains OpenWrt Target directory
+files for IPQ devices, Network, Wi-Fi drivers, packages and scripts.
+These can be used along with other feeds of OpenWrt.
+
+*Directory structure*
+
+[source,bash]
+----
+.
+|-- feeds
+|   |-- clo-upstream
+|   |-- nss-host
+|   |-- platform_utils
+|   |-- ssdk
+|   `-- wlan_utils
+|-- README.md
+`-- targets
+    `-- ipq95xx
+----
+
+Directory structure of the feed-ipq is segregated based on the following
+
+* `targets` - contains IPQ targets like ipq95xx and target related configs, files and patches
+
+* `feeds`   - contains IPQ target specific drivers, packages and scripts
+
+* `feeds/clo-upstream` - contains OpenWrt upstream components which are customized for IPQ targets
+
+== Build Artifacts
+
+After Integrating feed-ipq into OpenWrt, Below are the List of OpenWrt Firmware Images generated for IPQ devices
+
+* `Kernel_Image` - build_dir/target-aarch64_cortex-a73+neon-vfpv4_musl/linux-ipq95xx_generic/qcom_rdp433-uImage.itb
+* `Rootfs_Image` - build_dir/target-aarch64_cortex-a73+neon-vfpv4_musl/linux-ipq95xx_generic/root.squashfs
+
+== Flashing Instructions for IPQ devices
+
+*Generic Flashing Instructions*
+
+* In U-Boot prompt, Download the Firmware Image which needs to be flashed into the Target
+
+[source,bash]
+----
+tftpb <file_name>
+----
+
+* Once the Image is downloaded, Flash the image into the respective partition
+
+[source,bash]
+----
+flash <partition_name>
+----
+
+*Flashing in eMMC boards*
+
+* Execute the below set of commands to flash kernel and rootfs image into `IPQ emmc flash variant boards`
+
+[source,bash]
+----
+tftpb <Kernel_Image> && flash 0:HLOS
+
+tftpb <Rootfs_Image> && flash rootfs
+----
+
+*Flashing in NAND Boards*
+
+* Execute the below set of commands to flash kernel and rootfs image into `IPQ nand flash variant boards`
+
+[source,bash]
+----
+tftpb <Kernel_Image> && flash kernel
+
+tftpb <Rootfs_Image> && flash ubi_rootfs
+----
+
+== Verification of the built Image
+
+* In the generated OpenWRT Image, We could able to validate the below features
+  1. OpenWrt version - 24.10.0
+  2. GCC version     - GCC 13.3.0 r28427-6df0e3d02a
+  3. Ethernet - WAN
+  4. Ethernet - LAN
+  5. WiFi Interface up and running
+  6. WiFi Client connectivity - 2G
+  7. WiFi Client connectivity - 5G
+  8. Ping from AP to 2G client
+  9. Ping from AP to 5G client
+  10. Speed test in 2G client
+  11. Speed test in 5G client
+
+=== Ethernet
+
+* IP Address is assigned to the WAN Interface of the Target device.
+* And Target device could able to reach Internet through WAN Network.
+
+[source,bash]
+----
+root@OpenWrt:~# ifconfig eth0
+eth0      Link encap:Ethernet  HWaddr 00:03:7F:E6:D1:5E
+          inet addr:172.16.1.7  Bcast:172.16.255.255  Mask:255.255.0.0
+          inet6 addr: fd78:4c15:7f9d:0:203:7fff:fee6:d15e/64 Scope:Global
+          inet6 addr: 2a02:1234:420a:100b:203:7fff:fee6:d15e/64 Scope:Global
+          inet6 addr: fe80::203:7fff:fee6:d15e/64 Scope:Link
+          inet6 addr: fd78:4c15:7f9d::8f8/128 Scope:Global
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:1420 errors:0 dropped:390 overruns:0 frame:0
+          TX packets:45 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000
+          RX bytes:259546 (253.4 KiB)  TX bytes:5318 (5.1 KiB)
+          Base address:0x1000
+
+root@OpenWrt:~#
+root@OpenWrt:~# ping -c 5 8.8.8.8
+PING 8.8.8.8 (8.8.8.8): 56 data bytes
+64 bytes from 8.8.8.8: seq=0 ttl=118 time=1.454 ms
+64 bytes from 8.8.8.8: seq=1 ttl=118 time=1.293 ms
+64 bytes from 8.8.8.8: seq=2 ttl=118 time=1.403 ms
+64 bytes from 8.8.8.8: seq=3 ttl=118 time=1.261 ms
+64 bytes from 8.8.8.8: seq=4 ttl=118 time=1.244 ms
+
+--- 8.8.8.8 ping statistics ---
+5 packets transmitted, 5 packets received, 0% packet loss
+round-trip min/avg/max = 1.244/1.331/1.454 ms
+root@OpenWrt:~#
+root@OpenWrt:~# ping -c 5 google.com
+PING google.com (142.250.71.14): 56 data bytes
+64 bytes from 142.250.71.14: seq=0 ttl=118 time=1.356 ms
+64 bytes from 142.250.71.14: seq=1 ttl=118 time=1.395 ms
+64 bytes from 142.250.71.14: seq=2 ttl=118 time=1.216 ms
+64 bytes from 142.250.71.14: seq=3 ttl=118 time=1.214 ms
+64 bytes from 142.250.71.14: seq=4 ttl=118 time=1.225 ms
+
+--- google.com ping statistics ---
+5 packets transmitted, 5 packets received, 0% packet loss
+round-trip min/avg/max = 1.214/1.281/1.395 ms
+----
+
+=== WiFi
+
+* WiFi Interfaces for all the Radios are up and running.
+
+[source,bash]
+----
+root@OpenWrt:~# iw dev
+phy#0
+        Interface wlan0
+                ifindex 13
+                wdev 0x4
+                addr 00:03:7f:12:1b:1b
+                ssid feed-ipq-2g
+                type AP
+                Power mode: 0
+                link 0:
+                  addr 00:03:7f:12:1b:1b
+                  channel 6 (2437 MHz), width: 20 MHz, center1: 2437 MHz
+                  txpower 29.00 dBm
+        Interface wlan2
+                ifindex 12
+                wdev 0x3
+                addr 00:03:7f:12:1d:1d
+                ssid feed-ipq-6g
+                type AP
+                Power mode: 0
+                link 0:
+                  addr 00:03:7f:12:1d:1d
+                  channel 49 (6195 MHz), width: 80 MHz, center1: 6225 MHz
+                  txpower 21.00 dBm
+        Interface wlan1
+                ifindex 11
+                wdev 0x2
+                addr 00:03:7f:12:1c:1c
+                ssid feed-ipq-5g
+                type AP
+                Power mode: 0
+                link 0:
+                  addr 00:03:7f:12:1c:1c
+                  channel 36 (5180 MHz), width: 80 MHz, center1: 5210 MHz
+                  txpower 28.00 dBm
+----
+
+* Verified WiFi Clients connectivity to 2G and 5G Radios.
+
+[source,bash]
+----
+root@OpenWrt:~# iwinfo wlan0 assoc
+32:FF:B0:0E:1A:91  -55 dBm / -106 dBm (SNR 51)  10880 ms ago
+        RX: 172.0 MBit/s, HE-MCS 7, 20MHz, HE-NSS 2, HE-GI 0, HE-DCM 0       139 Pkts.
+        TX: 1.0 MBit/s                                   110 Pkts.
+        expected throughput: unknown
+
+root@OpenWrt:~#
+root@OpenWrt:~# iwinfo wlan1 assoc
+FA:30:3B:77:11:84  -49 dBm / -106 dBm (SNR 57)  5950 ms ago
+        RX: 1200.9 MBit/s, HE-MCS 11, 80MHz, HE-NSS 2, HE-GI 0, HE-DCM 0      2350 Pkts.
+        TX: 432.3 MBit/s, HE-MCS 4, 80MHz, HE-NSS 2, HE-GI 0, HE-DCM 0      6169 Pkts.
+        expected throughput: unknown
+----
+
+== Key Takeaways
+
+`feed-ipq` can be extended for building the mainline OpenWrt for IPQ based devices.
+This feed can also be used in OpenWrt based router Operating System like prplOS,
+IOWRT and openWiFi.
+
+== References
+
+  * https://openwrt.org/
+  * https://openwrt.org/docs/guide-developer/feeds
