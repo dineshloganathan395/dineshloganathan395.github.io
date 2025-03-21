@@ -1,0 +1,158 @@
+---
+author: "Dineshkumar_Loganathan"
+date: 2025-03-21 10:00:00 +0530
+description: "This blog will help to cross-compile applications using OpenWrt toolchain"
+categories: [blog, tutorial]
+tags: [openwrt, qemu, armsr, wireless, routers]
+---
+= Cross compile applications for OpenWrt
+
+In the previous article https://dineshloganathan395.github.io/posts/build-openwrt-for-armsr/[Build your own OpenWrt firmware for armsr target],
+We have seen how to build OpenWrt firmware for armsr target. OpenWrt is emulated
+using qemu for armsr target with the custom generated image.
+
+In this article, we can explore how to pack and release OpenWrt toolchain as a
+tarball using which OpenWrt application can be developed without the need for
+complete OpenWrt build system. We can also explore about how a simple `hello_world.c`
+program can be cross compiled using the released OpenWrt toolchain and how to
+execute the pre-compiled binary in the armsr target.
+
+== Cross-compilation - A brief intro
+
+Cross-compilation is the process of building software on your development
+environment (like PC) to run on different architecture like embedded systems.
+OpenWrt runs on embedded routers with different hardware architectures like ARM,
+MIPS, x86 and so on.
+
+OpenWrt helps in providing the cross-compilation toolchain as a separate package
+since Application developers doesn't need the complete build system to develop
+and test their applications in their Target.
+
+== Packing OpenWrt Toolchain
+
+OpenWrt toolchain can be packed as a tarball by enabling the below package in the
+menuconfig command.
+
+[source,sh]
+----
+make menuconfig -> Package the OpenWrt-based Toolchain (CONFIG_MAKE_TOOLCHAIN)
+----
+
+Enabling the config will help to generate the toolchain tarball in the target's bin
+directory
+
+* **armsr Toolchain artifacts** : bin/targets/armsr/armv8/openwrt-toolchain-armsr-armv8_gcc-13.3.0_musl.Linux-x86_64.tar.zst
+
+== Unpacking the OpenWrt Toolchain
+
+* Download the OpenWrt toolchain tarball into the development environment
+
+* Unpack the OpenWrt toolchain using the command
+
+[source,sh]
+----
+tar --zstd -xvf openwrt-toolchain-armsr-armv8_gcc-13.3.0_musl.Linux-x86_64.tar.zst
+----
+
+* After extracting the files, Cross-compilation Toolchain relate files are available in below path
+
+[source,sh]
+----
+openwrt-toolchain-armsr-armv8_gcc-13.3.0_musl.Linux-x86_64/toolchain-aarch64_generic_gcc-13.3.0_musl/
+|-- aarch64-openwrt-linux -> aarch64-openwrt-linux-musl
+|-- aarch64-openwrt-linux-musl
+|-- bin
+|-- include
+|-- info.mk
+|-- lib
+|-- lib32 -> lib
+|-- lib64 -> lib
+|-- libexec
+|-- share
+`-- usr
+----
+
+== Cross Compile hello world for armsr-armv8 target
+
+* Create a Simple C program - `hello_world.c`
+
+[source,sh]
+----
+#include <stdio.h>
+
+int main()
+{
+	printf("Hello World - Welcome to OpenWrt\n");
+
+	return 0;
+}
+----
+
+* Export Toolchain's bin directory path
+
+[source,sh]
+----
+$ export PATH=~/Downloads/openwrt-toolchain-armsr-armv8_gcc-13.3.0_musl.Linux-x86_64/toolchain-aarch64_generic_gcc-13.3.0_musl/bin/:$PATH
+----
+
+* cross compile the hello_world.c program using the OpenWrt toolchain for armsr target
+
+[source,sh]
+----
+$ aarch64-openwrt-linux-gcc ~/Downloads/hello_world.c -o ~/Downloads/armsr_hello_world
+----
+
+* Verify the generated binary format using file command
+
+[source,sh]
+----
+$ file ~/Downloads/armsr_hello_world
+/home/user/Downloads/armsr_hello_world: ELF 64-bit LSB executable, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /lib/ld-musl-aarch64.so.1, with debug_info, not stripped
+----
+
+== Validate hello world binary
+
+* In the development environment/Host machine (like PC), Emulate OpenWrt for armsr target using qemu
+
+* Find the Gateway (or) host machine's IP address using the **route -n** command
+
+[source,sh]
+----
+root@OpenWrt:~# route -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         10.0.2.2        0.0.0.0         UG    0      0        0 eth1
+.... skipped ....
+----
+
+* Verify whether the host machine is reachable from qemu using the ping command
+
+[source,sh]
+----
+root@OpenWrt:~# ping 10.0.2.2
+PING 10.0.2.2 (10.0.2.2): 56 data bytes
+64 bytes from 10.0.2.2: seq=0 ttl=255 time=0.745 ms
+----
+
+* Copy the generated binary from the host machine into the qemu using the scp command
+
+[source,sh]
+----
+root@OpenWrt:~#  scp user@10.0.2.2:~/Downloads/armsr_hello_world ~/
+----
+
+* Execute the generated binary in the armsr target
+
+[source,sh]
+----
+root@OpenWrt:~# ~/armsr_hello_world
+Hello World - Welcome to OpenWrt
+----
+
+== Future Explorations in OpenWrt
+
+With a simple hello_world.c program cross-compiled and running in the OpenWrt
+target, It opens up a way to build, modify and test applications using the OpenWrt
+toolchain without the need for a complete build system. Pre-built OpenWrt toolchain
+for different target architectures are also available in https://downloads.openwrt.org/[OpenWrt]
+using which applications can be developed for the specific architectures.
