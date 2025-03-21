@@ -4,7 +4,7 @@
   <id>https://dineshloganathan395.github.io/</id>
   <title>Dineshkumar Loganathan</title>
   <subtitle>Embedded Systems Engineer, Open Source Software enthusiast</subtitle>
-  <updated>2025-03-20T21:41:27+05:30</updated>
+  <updated>2025-03-21T18:12:54+05:30</updated>
   <author>
     <name>Dineshkumar Loganathan</name>
     <uri>https://dineshloganathan395.github.io/</uri>
@@ -17,6 +17,32 @@
   <icon>/assets/img/favicons/favicon.ico</icon>
   <logo>/assets/img/favicons/favicon-96x96.png</logo>
 
+
+  
+  <entry>
+    <title>Cross compile applications for OpenWrt</title>
+    <link href="https://dineshloganathan395.github.io/posts/cross-compile-applications-for-openwrt/" rel="alternate" type="text/html" title="Cross compile applications for OpenWrt" />
+    <published>2025-03-21T10:00:00+05:30</published>
+  
+    <updated>2025-03-21T10:00:00+05:30</updated>
+  
+    <id>https://dineshloganathan395.github.io/posts/cross-compile-applications-for-openwrt/</id>
+    <content type="text/html" src="https://dineshloganathan395.github.io/posts/cross-compile-applications-for-openwrt/" />
+    <author>
+      <name>Dineshkumar_Loganathan</name>
+    </author>
+
+  
+    
+    <category term="blog" />
+    
+    <category term="tutorial" />
+    
+  
+
+  <summary>This blog will help to cross-compile applications using OpenWrt toolchain</summary>
+
+  </entry>
 
   
   <entry>
