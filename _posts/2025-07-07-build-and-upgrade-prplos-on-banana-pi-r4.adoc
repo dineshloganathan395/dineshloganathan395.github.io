@@ -1,0 +1,257 @@
+---
+author: "Dineshkumar_Loganathan"
+date: 2025-07-07 10:00:00 +0530
+description: "This blog will help to build and upgrade prplOS on Banana Pi R4"
+categories: [blog, tutorial]
+tags: [prplOS, wireless, routers, mediatek, filogic, bpi]
+---
+= Build and upgrade prplOS on Banana Pi R4
+
+In the previous article
+https://dineshloganathan395.github.io/posts/getting-started-with-prplos-on-banana-pi-r4[Getting Started with prplOS on Banana Pi R4],
+we have seen how to explore prplOS Image on Banana PI R4.
+prplOS is booted using the pre-built image downloaded from the github repo.
+In this article, we can build our own custom prplOS Image for Banana PI R4
+including custom modifications and local patches added to support the new hardware.
+
+prplOS can be built for any OpenWrt compatible devices with custom build instructions
+tailored to the Target hardware and has several advantages like
+
+1. Explore the prplOS build system and architecture
+2. Bring-up new hardware support within prplOS
+3. Adapt and configure prplOS to harness all supported features on new hardware
+4. Explore prplOS components, features and packages
+5. Develop and Integrate new features in prplOS
+
+image::/assets/img/posts/prpl_logo.png[align="center", width=320px]
+
+== Build prplOS Image for Banana Pi R4
+
+**bpi-r4-dev-resources**
+
+https://github.com/dineshloganathan395/bpi-r4-dev-resources[bpi-r4-dev-resources]
+is my github repo which contains Banana Pi R4 related dev resources like
+
+* Custom patches
+* Build Configurations
+* Image artifacts
+
+For building prplOS for the Banana Pi R4 using the prplos-v4.0.0 release,
+**Download** the required patch from the **bpi-r4-dev-resources** github repo
+
+[source,sh]
+----
+user@linux:[bpi-r4-dev-resources]$ tree --charset=ascii
+.
+|-- prplos
+|   `-- prplos-v4.0.0
+|       `-- patches
+|           |-- feed_mediatek
+|           |   |-- 0001-filogic-Disable-generating-snand-build-artifacts.patch
+|           |   |-- 0002-filogic-Remove-eth2-from-WAN-interface-mapping-for-b.patch
+|           |   |..... skipped
+|           `-- prplos
+|               |-- 0001-mtk_filogic-Add-bananapi_bpi-r4-support-in-prplos.patch
+|               |-- 0002-uboot-mediatek-Add-latest-uboot-mediatek-from-openwr.patch
+|               |..... skipped
+`-- README.md
+
+6 directories, 8 files
+----
+
+**Setting Up the prplOS Build Environment**
+
+For detailed instructions on setting up the build environment, refer to the
+https://gitlab.com/prpl-foundation/prplos/prplos/-/wikis/Building-prplOS[Building-prplOS]
+page on the official wiki.
+
+**1. Initialize prplOS repository**
+
+Clone the prplOS repository using the below command and navigate to the prplos
+build directory
+
+[source,sh]
+----
+git clone https://gitlab.com/prpl-foundation/prplos/prplos.git
+cd prplos
+----
+
+Checkout to prplOS latest stable release, **prplos-v4.0.0**
+
+[source,sh]
+----
+git checkout prplos-v4.0.0
+----
+
+**2. Add Banana Pi R4 support in prplos**
+
+To add Banana Pi R4 support in prplOS, a custom set of patches needs to be
+applied to the prplos directory.
+
+These patches enable the following features:
+
+* Include Banana Pi R4's Target Device model name in mtk_filogic.yml, allowing the BPI-R4 to be built as part of prplOS.
+
+* Integrate the latest uboot-mediatek from OpenWrt to add support for Banana PI R4
+
+* Disable Banana PI R4 snand builds since snand support is currently not available
+
+* Enable arm-trusted-firmware and u-boot-mt7988 related packages specific to the Banana Pi R4
+
+* Update LAN and WAN interface names to lan1 and wan, matching the Banana Pi R4’s interface naming
+
+Apply the relevant patches in prplos directory using the follow command
+
+[source,sh]
+----
+git am ~/Downloads/bpi-r4-dev-resources/prplos/prplos-v4.0.0/Patches/prplos/*.patch
+----
+
+**3. Configure Target profile for prplOS build**
+
+gen_config.py is a Python helper script in prplOS that simplifies selecting the
+target device profile and features required for building prplOS images.
+
+It automatically configures the necessary build options, target architecture,
+and packages based on the selected profile instead of using `make menuconfig` to
+select and configure the Target.
+
+To configure the build for Banana Pi R4, run the following command:
+
+[source,sh]
+----
+./scripts/gen_config.py mtk_filogic prpl security
+----
+
+Here:
+
+* `mtk_filogic` specifies the target architecture (MediaTek Filogic).
+
+* `prpl` enables prpl specific packages and configurations.
+
+* `security` includes additional security-related packages for the build.
+
+**4. Add Banana Pi R4 support in feed_mediatek**
+
+The feed_mediatek directory contains the below for building prplOS on MediaTek
+platforms
+
+1. Target related files
+2. Kernel related DTS, Configs, Files and Patches
+3. Mediatek specific driver and packages
+
+A custom set of patches needs to be applied to the feed_mediatek directory which
+includes custom changes for necessary image generation and network configurations
+to build and boot prplOS Image on Banana Pi R4 device
+
+These patches includes the following custom changes
+
+1. Disable generating snand build artifacts
+2. Remove eth2 from WAN interface mapping for bpi-r4
+
+Apply the relevant patches in feed_mediatek directory using the follow command
+
+[source,sh]
+----
+git am ~/Downloads/bpi-r4-dev-resources/prplos/prplos-v4.0.0/Patches/feed_mediatek/*.patch
+----
+
+**5. Build prplOS**
+
+Finally, start building prplOS with the following make command
+
+[source,bash]
+----
+make V=e -j$(nproc)
+----
+
+**Build Artifacts**
+
+Below is the list of prplOS firmware images generated for Banana Pi R4
+
+* **SD Card Image** - bin/targets/mediatek/filogic/prplos-mediatek-filogic-bananapi_bpi-r4-sdcard.img.gz
+* **Sysupgrade Image** - bin/targets/mediatek/filogic/prplos-mediatek-filogic-bananapi_bpi-r4-squashfs-sysupgrade.itb
+
+== Upgrade prplOS Image on Banana PI R4
+
+=== Method 1 : Burn prplOS Image to SD Card
+
+Burn prplOS Image to SD Card using the instructions provided in the official
+https://docs.banana-pi.org/en/BPI-R4/GettingStarted_BPI-R4[Banana PI R4 document].
+Once the Image is burned, Insert the SD Card into Banana PI R4 and switch
+Boot Jumper to boot from SD.
+
+Power on the Banana Pi R4 to boot your own prplOS Image from the SD card.
+
+=== Method 2: Image upgrade through Sysupgrade feature
+
+If prplOS Image is already flashed in the Banana PI R4, We can use sysupgrade
+feature to upgrade the latest image without updating the SD card manually.
+
+* Copy the Sysupgrade Image into Banana PI R4 using the scp command
+
+[source,sh]
+------
+root@prplOS:/# cat /proc/version
+Linux version 6.6.89 (user@3392f6529df3) (aarch64-openwrt-linux-musl-gcc (OpenWrt GCC 12.3.0 r0+25055-4b63d62a00) 12.3.0, GNU ld (GNU Binutils) 2.40.0) #0 SMP Mon Jun 30 05:52:34 2025
+
+root@prplOS:/# scp user@172.16.0.215:~/Downloads/prplos-mediatek-filogic-bananapi_bpi-r4-squashfs-sysupgrade.itb /tmp/
+user@172.16.0.215's password:
+prplos-mediatek-filogic-bananapi_bpi-r4-squas 100%   36MB  36.0MB/s   00:01
+------
+
+* Upgrade the latest prplOS Image in Banana PI R4 through sysupgrade command
+
+[source,sh]
+------
+root@prplOS:/# sysupgrade -v -n /tmp/prplos-mediatek-filogic-bananapi_bpi-r4-squashfs-sysupgrade.itb
+Mon Jul  7 12:44:40 GMT 2025 upgrade: Commencing upgrade. Closing all shell sessions.
+Watchdog handover: fd=3
+- watchdog -
+Watchdog does not have CARDRESET support
+Mon Jul  7 12:34:08 GMT 2025 upgrade: Sending TERM to remaining processes ...
+
+.... skipped ....
+
+Mon Jul  7 12:44:55 UTC 2025 upgrade: Performing system upgrade...
+fitblk: /dev/fit0 released
+fitblk: /dev/fitrw released
+8+0 records in
+8+0 records out
+Mon Jul  7 12:45:02 UTC 2025 upgrade: Upgrade completed
+Mon Jul  7 12:45:03 UTC 2025 upgrade: Rebooting system...
+umount: can't unmount /dev: Resource busy
+umount: can't unmount /tmp
+[  356.673819] reboot: Restarting system
+
+.... skipped ....
+
+BusyBox v1.36.1 (2025-06-30 05:52:34 UTC) built-in shell (ash)
+
+                   _  ___  ____
+  _ __  _ __ _ __ | |/ _ \/ ___|
+ | '_ \| '__| '_ \| | | | \___ \
+ | |_) | |  | |_) | | |_| |___) |
+ | .__/|_|  | .__/|_|\___/|____/
+ |_|        |_| based on OpenWrt
+ --------------------------------
+      prplOS 3.2.0-4b63d62a
+ --------------------------------
+
+=== WARNING! =====================================
+There is no root password defined on this device!
+Use the "passwd" command to set up a new password
+in order to prevent unauthorized SSH logins.
+--------------------------------------------------
+root@prplOS:/#
+root@prplOS:/# cat /proc/version
+Linux version 6.6.89 (user@754c8cc7d26d) (aarch64-openwrt-linux-musl-gcc (OpenWrt GCC 12.3.0 r0+25055-4b63d62a00) 12.3.0, GNU ld (GNU Binutils) 2.40.0) #0 SMP Mon Jun 30 05:52:34 2025
+
+------
+
+We could now able to build and upgrade latest prplOS Image through various Image
+upgrade methods in Banana PI R4. It opens up a way to build and explore prplOS
+architecture through various customizations of our own.
+
+In the future posts, we will cover how to enable, explore WiFi and other prplOS
+related features in Banana PI R4.
