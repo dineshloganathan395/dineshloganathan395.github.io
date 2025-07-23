@@ -1,0 +1,383 @@
+---
+author: "Dineshkumar_Loganathan"
+date: 2025-07-23 10:00:00 +0530
+description: "This blog will help to boot VxWorks 7 SDK for Raspberry Pi 3"
+categories: [blog, tutorial]
+tags: [prplOS, wireless, routers, mediatek, filogic, bpi]
+---
+= VxWorks 7 SDK for Raspberry Pi 3
+
+VxWorks is a Real-Time Operating System (RTOS) developed by Wind River Systems.
+It is used in embedded systems requiring real-time, deterministic performance
+and predictable timing. VxWorks is used in industries where safety and security
+certification's plays a key role like aerospace, defense, medical devices,
+industrial equipment, robotics, energy, transportation, network infrastructure,
+automotive, and consumer electronics.
+
+VxWorks supports a range of target architectures including ARM, Intel, Power
+architecture, ARM, RISC-V architecture and more. VxWorks can also be explored on
+Raspberry Pi since it is a compact, affordable, and versatile ARM Cortex based
+single-board computer widely used for embedded systems prototyping, education,
+and hobby projects.
+
+This article helps us to setup environment with required firmware files to boot
+VxWorks on a Raspberry Pi 3b.
+
+== Building VxWorks for Raspberry Pi 3b
+
+Building VxWorks for Raspberry Pi 3 from scratch requires:
+
+* A licensed VxWorks SDK with ARMv8 support.
+* BSP (Board Support Package) configuration.
+* Wind River Workbench or CLI environment.
+
+Pre-built VxWorks images for the Raspberry Pi 3 allow you to get hands-on
+experience with VxWorks, helping you understand the boot flow, develop and test
+applications, and explore the RTOS practically-without the need to purchase a
+full development license.
+
+Follow these steps to build, prepare the required files, and set up your SD card
+to boot VxWorks on Raspberry Pi 3.
+
+=== 1. Prerequisites: Prepare SD Card for Raspberry Pi 3
+
+For booting VxWorks in Raspberry Pi 3, Below list of partitions needs to be created
+in the SD Card
+
+- `/dev/sda` (SD Card device)
+- `/dev/sda1` (boot, FAT32)
+- `/dev/sda2` (rootfs or data, ext4)
+
+**Creating partitions in SDCARD using `fdisk`**
+
+fdisk is a command-line utility available on Linux systems for managing disk partition tables.
+
+To create new partitions on your SD card, run the following command in your Linux terminal.
+
+[source,sh]
+----
+sudo fdisk /dev/sda
+----
+
+**Note:** Replace `/dev/sda` with the actual device name of your SD card on your system to avoid data loss on other drives.
+
+**fdisk Partitioning: Interactive prompt**
+
+Once you run the fdisk command, it will open an interactive prompt where you can
+create and manage partitions on your SD card
+
+**1. Create a new DOS partition table:**
+
+* Create a new empty DOS partition table using the **o** command in fdisk
+
+[source,sh]
+----
+o
+----
+
+**2. Create Partition 1 (boot):**
+
+* Create a new boot partition on the SD card to store the VxWorks boot files.
+
+[source,sh]
+----
+n
+p
+1
+<Enter>            # default first sector
++512M              # 512 MB boot partition
+----
+
+* Set partition type to FAT32 LBA
+
+[source,sh]
+----
+t
+c
+----
+
+* Set the bootable flag on *partition 1* using the `a` command in `fdisk`. This marks the partition as bootable for VxWorks.
+
+[source,sh]
+----
+a
+----
+
+**3. Create Partition 2 (rootfs):**
+
+* Create a new partition for rootfs
+
+[source,sh]
+----
+n
+p
+2
+<Enter>            # default first sector
+<Enter>            # use remaining space
+----
+
+**4. Write changes and exit:**
+
+* Once the above partition is created, save the changes using the below command
+
+[source,sh]
+----
+p                   # (optional: view partition table)
+w
+----
+
+**Formatting SD Card partitions**
+
+* Format the SD Card's boot partition to FAT32 filesystem using mkfs command
+
+[source,sh]
+----
+sudo mkfs.vfat -F 32 -n "RPI_SDCARD" /dev/sda1
+----
+
+* Format the SD Card's rootfs as ext4
+
+[source,sh]
+----
+sudo mkfs.ext4 -L rootfs /dev/sda2
+----
+
+* Once the partitioning is completed, we can mount the partitions to our Linux device.
+
+[source,sh]
+----
+user@linux:[~]$ ls /media/user/
+rootfs  RPI_SDCARD
+----
+
+=== 2. Raspberry Pi Firmware
+
+The Raspberry Pi requires its firmware to initialize the GPU and memory before
+loading U-Boot or the operating system.
+
+* The firmware is available at https://github.com/raspberrypi/firmware/tags
+
+* Download and Extract Raspberry Pi firmware version - 1.20200212
+
+[source,sh]
+----
+wget https://github.com/raspberrypi/firmware/archive/1.20200212.tar.gz
+
+tar -xvzf 1.20200212.tar.gz
+
+cd firmware-1.20200212
+----
+
+* Copy the firmware files to the SD card
+
+[source,sh]
+----
+cp -r boot/* /media/user/RPI_SDCARD/
+----
+
+=== 3. Generate U-Boot binary for Raspberry Pi 3
+
+* Initialize the U-Boot repository
+
+[source,sh]
+----
+git clone https://gitlab.denx.de/u-boot/u-boot.git u-boot-v2020.10
+
+cd u-boot-v2020.10
+
+git checkout u-boot-v2020.10
+----
+
+* Compile U-Boot for Raspberry Pi 3
+
+[source,sh]
+----
+CROSS_COMPILE=aarch64-linux-gnu- make rpi_3_b_plus_defconfig
+CROSS_COMPILE=aarch64-linux-gnu- make
+----
+
+* Copy the generated binary `u-boot.bin` to the SD card as `kernel8.img`
+
+[source,sh]
+----
+cp u-boot.bin /media/user/RPI_SDCARD/kernel8.img
+----
+
+=== 4. VxWorks Software Development Kit (SDK)
+
+**VxWorks pre-built Images**
+
+VxWorks pre-built images are available on the following official Wind River sources
+
+* For VxWorks Image Version >= 21.03 : https://forums.windriver.com/t/vxworks-software-development-kit-sdk/
+
+* For VxWorks Image Version < 21.03 : https://labs.windriver.com/downloads/wrsdk_prev.html
+
+**VxWorks for Raspberry Pi 3b**
+
+* Download the Vxworks pre-built Images for Raspberry Pi 3b
+
+[source,sh]
+----
+wget https://labs.windriver.com/downloads/wrsdk-vxworks7-raspberrypi3b-1.5.tar.bz2
+
+tar -xf wrsdk-vxworks7-raspberrypi3b-1.5.tar.bz2
+
+cd wrsdk-vxworks7-raspberrypi3b
+----
+
+* Copy the boot files required for VxWorks
+
+[source,sh]
+----
+cp -rLu bsps/rpi_3_0_1_1_1/boot/sdcard/* /media/user/RPI_SDCARD/
+
+sync
+----
+
+* Create a directory for VxWorks Kernel on the SD card and copy the VxWorks kernel
+
+[source,sh]
+----
+mkdir -p /media/user/RPI_SDCARD/vx
+
+cp bsps/rpi_3_0_1_1_1/uboot/uVxWorks /media/user/RPI_SDCARD/vx/
+----
+
+With the above steps completed, the SD card is now prepared. You can safely
+unmount the SD card, insert it into the Raspberry Pi 3b, and power it on to start booting VxWorks.
+
+== Booting VxWorks in Raspberry Pi 3b
+
+Connect Raspberry Pi 3b to Linux PC using a serial console cable.
+minicom (or) picocom applications can be used to get the console access and
+interact with the target board.
+
+**Boot Process of Raspberry Pi 3 using VxWorks Kernel**
+
+The boot process of the Raspberry Pi 3 involves multiple stages to bring up the
+VxWorks Kernel on the Target board
+
+[source,sh]
+----
+[GPU ROM Bootloader]
+    ↓
+[bootcode.bin]
+    ↓
+[start.elf + config.txt]
+    ↓
+[U-Boot]
+    ↓
+[VxWorks Kernel]
+    ↓
+[VxWorks Shell (->)]
+----
+
+After powering on the Raspberry Pi, you will see the U-Boot logs first, followed
+by the VxWorks boot logs, and finally the VxWorks shell prompt:
+
+**1. u-boot**
+
+[source,sh]
+----
+U-Boot 2020.10 (Jul 18 2025 - 16:48:06 +0530)
+
+DRAM:  948 MiB
+RPI 3 Model B (0xa02082)
+MMC:   mmc@7e202000: 0, sdhci@7e300000: 1
+----
+
+**2. Kernel**
+
+[source,sh]
+----
+## Booting kernel from Legacy Image at 08000000 ...
+   Image Name:   vxworks
+   Image Type:   AArch64 VxWorks Kernel Image (uncompressed)
+   Data Size:    6295956 Bytes = 6 MiB
+   Load Address: 00100000
+   Entry Point:  00100000
+   Verifying Checksum ... OK
+   Loading Kernel Image
+   !!! WARNING !!! Using legacy DTB
+## Starting vxWorks at 0x00100000, device tree at 0x00000000 ...
+Target Naarget
+Instantiating /tmp as rawFs,  device = 0x1
+
+ _________            _________
+ \77777777\          /77777777/
+  \77777777\        /77777777/
+   \77777777\      /77777777/
+    \77777777\    /77777777/
+     \77777777\   \7777777/
+      \77777777\   \77777/              VxWorks 7 SMP 64-bit
+       \77777777\   \777/
+        \77777777\   \7/     Release version: SR0650
+         \77777777\   -      Build date: Aug 20 2020 16:09:57
+          \77777777\
+           \7777777/         Copyright Wind River Systems, Inc.
+            \77777/   -                 1984-2020
+             \777/   /7\
+              \7/   /777\
+               -   -------
+
+                   Board: Raspberry Pi 3 Model B+ - ARMv8
+               CPU Count: 4
+          OS Memory Size: ~947MB
+        ED&R Policy Mode: Deployed
+     Debug Agent: Started (al         Stop Mod: Not sta             BSP Status: *** UNSUPPORTED ***
+
+usrNetDevNameGet: no network device
+usrNetDevNameGet: no network device
+
+ Adding 12462 symbols for standalone.
+----
+
+**3. Default prompt**
+
+[source,sh]
+----
+-> memShow
+  status       bytes       blocks      avg block     max block
+ -------- -------------- ---------- -------------- --------------
+current
+ free           28039440         30         934648       27762640
+ alloc          39068304       5500           7103              -
+ internal           1008          3            336              -
+cumulative
+ alloc          39527936       5818           6794              -
+peak
+ alloc          39308080          -              -              -
+cached
+ no cached blocks
+value = 0 = 0x0
+----
+
+**4. VxWorks prompt**
+
+* Enter `cmd` to enter in VxWorks prompt
+
+[source,sh]
+----
+-> cmd
+[vxWorks *]#
+----
+
+**5. VxWorks - Version details**
+
+[source,sh]
+----
+[vxWorks *]# version
+VxWorks 7 SMP 64-bit (for Raspberry Pi 3 Model B+ - ARMv8)
+Release version: SR0650
+Build date: Aug 20 2020 16:09:57
+Boot line:
+usb2End(0,0)host:vxWorks h=192.168.0.2 e=192.168.0.3:ffffff00 g=192.168.0.1 u=target pw=vxTarget
+----
+
+== Unlocking New Explorations in VxWorks
+
+With VxWorks Kernel running on the Raspberry Pi 3, It creates a practical platform
+to explore RTOS concepts hands-on, Load and run simple VxWorks modules, experiment
+with creating and managing tasks directly from the shell, and build minimal VxWorks
+applications to deepen your understanding of real-time systems.
