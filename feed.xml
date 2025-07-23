@@ -4,7 +4,7 @@
   <id>https://dineshloganathan395.github.io/</id>
   <title>Dineshkumar Loganathan</title>
   <subtitle>Embedded Systems Engineer, Open Source Software enthusiast</subtitle>
-  <updated>2025-07-07T19:00:24+05:30</updated>
+  <updated>2025-07-23T18:58:16+05:30</updated>
   <author>
     <name>Dineshkumar Loganathan</name>
     <uri>https://dineshloganathan395.github.io/</uri>
@@ -17,6 +17,32 @@
   <icon>/assets/img/favicons/favicon.ico</icon>
   <logo>/assets/img/favicons/favicon-96x96.png</logo>
 
+
+  
+  <entry>
+    <title>VxWorks 7 SDK for Raspberry Pi 3</title>
+    <link href="https://dineshloganathan395.github.io/posts/vxworks-7-sdk-for-raspberry-pi-3/" rel="alternate" type="text/html" title="VxWorks 7 SDK for Raspberry Pi 3" />
+    <published>2025-07-23T10:00:00+05:30</published>
+  
+    <updated>2025-07-23T10:00:00+05:30</updated>
+  
+    <id>https://dineshloganathan395.github.io/posts/vxworks-7-sdk-for-raspberry-pi-3/</id>
+    <content type="text/html" src="https://dineshloganathan395.github.io/posts/vxworks-7-sdk-for-raspberry-pi-3/" />
+    <author>
+      <name>Dineshkumar_Loganathan</name>
+    </author>
+
+  
+    
+    <category term="blog" />
+    
+    <category term="tutorial" />
+    
+  
+
+  <summary>This blog will help to build VxWorks 7 SDK for Raspberry Pi 3</summary>
+
+  </entry>
 
   
   <entry>
@@ -119,32 +145,6 @@
   
 
   <summary>This blog will help to build OpenWRT firmware for IPQ devices using feed-ipq</summary>
-
-  </entry>
-
-  
-  <entry>
-    <title>Build your own OpenWrt firmware for armsr target</title>
-    <link href="https://dineshloganathan395.github.io/posts/build-openwrt-for-armsr/" rel="alternate" type="text/html" title="Build your own OpenWrt firmware for armsr target" />
-    <published>2025-03-19T10:00:00+05:30</published>
-  
-    <updated>2025-03-19T10:00:00+05:30</updated>
-  
-    <id>https://dineshloganathan395.github.io/posts/build-openwrt-for-armsr/</id>
-    <content type="text/html" src="https://dineshloganathan395.github.io/posts/build-openwrt-for-armsr/" />
-    <author>
-      <name>Dineshkumar_Loganathan</name>
-    </author>
-
-  
-    
-    <category term="blog" />
-    
-    <category term="tutorial" />
-    
-  
-
-  <summary>This blog will help to build OpenWrt firmware for armsr target</summary>
 
   </entry>
 
