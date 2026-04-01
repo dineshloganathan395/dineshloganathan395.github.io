@@ -1,0 +1,343 @@
+---
+author: "Dineshkumar_Loganathan"
+date: 2026-04-01 10:00:00 +0530
+description: "This blog will help to bring up prplMesh on Banana Pi R4 boards."
+categories: [blog, tutorial]
+tags: [prplOS, prplMesh, EasyMesh, wireless, routers, mediatek, filogic, bpi]
+---
+= Bringing Up prplMesh on Banana Pi R4
+
+In the previous articles, we have seen how to bring up prplOS on Banana Pi R4
+and build a custom image for it.
+
+* https://dineshloganathan395.github.io/posts/getting-started-with-prplos-on-banana-pi-r4[Getting Started with prplOS on Banana Pi R4]
+* https://dineshloganathan395.github.io/posts/build-and-upgrade-prplos-on-banana-pi-r4[Build and Upgrade prplOS on Banana Pi R4]
+
+In this article, we will set up **prplMesh** between two Banana Pi R4 boards to form
+a working **EasyMesh** network using wireless backhaul with WPS onboarding.
+
+== What is prplMesh?
+
+prplMesh is an open-source, carrier-grade implementation of the Wi-Fi Alliance’s
+EasyMesh standard, designed to create a seamless, self-organizing Wi-Fi network.
+It is developed and maintained by the prpl Foundation and is natively integrated
+into prplOS as its mesh networking solution.
+
+image::/assets/img/posts/prpl_logo.png[align="center", width=320px]
+
+prplMesh supports both **Controller** and **Agent** roles and provides the following
+key capabilities like Device Onboarding, AP Autoconfiguration, Topology Discovery,
+Client Steering, Channel Selection and Backhaul Management.
+
+== prplMesh Setup Overview
+
+In a prplMesh network, devices operate as either a *Gateway* (Controller + Agent)
+or a *Repeater* (Agent). In this setup, two Banana Pi R4 boards are used acting as
+Gateway and Repeater.
+
+[source,sh]
+----
+               [Internet/WAN]
+                    |
+         +----------------------+
+         |      BPI-R4 #1       |  Gateway (Controller + Agent)
+         |       prplOS         |  Fronthaul SSID : PRPLOS-FH
+         |                      |  Backhaul  SSID : PRPLOS-BH
+         +----------------------+
+                    |
+         Wi-Fi Backhaul (WPS PBC Onboarding)
+                    |
+         +----------------------+
+         |      BPI-R4 #2       |  Repeater (Agent)
+         |       prplOS         |  No Ethernet connected
+         +----------------------+
+----
+
+The above diagram illustrates the overall setup, including the Gateway and
+Repeater roles and the wireless backhaul connection between them.
+
+[cols="2,2,6", options="header"]
+|===
+| Board | Role | Description
+
+| **BPI-R4 #1**
+| Gateway (Controller + Agent)
+| Connected to the WAN/Internet. +
+  Hosts both Fronthaul and Backhaul SSIDs across all radios.
+
+| **BPI-R4 #2**
+| Repeater (Agent)
+| A secondary mesh node running only the EasyMesh Agent. +
+  Connects to the Gateway over wireless backhaul. +
+  *Ensure no Ethernet connection is present on the Repeater to allow proper wireless onboarding.*
+|===
+
+The setup uses the prplOS *4.1.0* image, which is available in the
+https://github.com/dineshloganathan395/bpi-r4-dev-resources[bpi-r4-dev-resources] GitHub repository,
+and can be either downloaded directly or built from source using the
+instructions below:
+
+* https://github.com/dineshloganathan395/bpi-r4-dev-resources/releases/latest[Download the latest prplOS image]
+* https://github.com/dineshloganathan395/bpi-r4-dev-resources/tree/main/prplos[Build instructions for prplOS]
+  (refer to the required version directory, e.g. `prplware-vX.Y.Z/prplware-vX.Y.Z-build-instructions.md`)
+
+The Banana Pi R4 features a Wi-Fi 7 tri-band module (2GHz, 5GHz, 6GHz). Each radio
+is configured with a **FronthaulBSS** for client connectivity and a **BackhaulBSS**
+for the mesh backhaul. On the Repeater side, each radio also runs a
+**STA (EndPoint)** interface that connects to the Gateway's BackhaulBSS.
+
+== Step 1: Configure BPI-R4 #1 as Gateway
+
+On **BPI-R4 #1**, we need to configure the Fronthaul and Backhaul BSS on each
+radio and start prplMesh in gateway mode.
+
+prplOS exposes the Wi-Fi data model through `ubus-cli`. The `WiFi.SSID` and
+`WiFi.AccessPoint` objects are used to configure the SSIDs and access point
+settings for each radio. The `ubus-cli` commands below should be executed on the prplOS command line.
+
+Below is the radio and BSS mapping for Banana Pi R4
+
+[cols="2,1,2,1,2", options="header"]
+|===
+| Radio | Fronthaul AP | Fronthaul SSID | Backhaul AP | Backhaul SSID
+
+| Radio 1 (2GHz) | AccessPoint.1 | SSID.1 | AccessPoint.2 | SSID.3
+| Radio 2 (5GHz) | AccessPoint.3 | SSID.4 | AccessPoint.4 | SSID.6
+| Radio 3 (6GHz) | AccessPoint.5 | SSID.7 | AccessPoint.6 | SSID.9
+|===
+
+**1. Enable WDS and WPS on all Access Points**
+
+[source,sh]
+----
+ubus-cli WiFi.AccessPoint.*.WDSEnable=1
+ubus-cli WiFi.AccessPoint.*.WPS.Enable=1
+----
+
+**2. Configure Radio 1 (2GHz) Fronthaul and Backhaul BSS**
+
+[source,sh]
+----
+# Configure : Radio 1 Fronthaul
+ubus-cli WiFi.SSID.1.SSID="PRPLOS-FH"
+ubus-cli WiFi.AccessPoint.1.Security.KeyPassPhrase="prplmesh"
+ubus-cli WiFi.AccessPoint.1.BridgeInterface="br-lan"
+ubus-cli WiFi.AccessPoint.1.MultiAPType="FronthaulBSS"
+ubus-cli WiFi.AccessPoint.1.Enable=1
+
+# Configure : Radio 1 Backhaul
+ubus-cli WiFi.SSID.3.SSID="PRPLOS-BH"
+ubus-cli WiFi.AccessPoint.2.Security.KeyPassPhrase="prplmesh"
+ubus-cli WiFi.AccessPoint.2.BridgeInterface="br-lan"
+ubus-cli WiFi.AccessPoint.2.MultiAPType="BackhaulBSS"
+ubus-cli WiFi.AccessPoint.2.Enable=1
+----
+
+**3. Configure Radio 2 (5GHz) Fronthaul and Backhaul BSS**
+
+[source,sh]
+----
+# Configure : Radio 2 Fronthaul
+ubus-cli WiFi.SSID.4.SSID="PRPLOS-FH"
+ubus-cli WiFi.AccessPoint.3.Security.KeyPassPhrase="prplmesh"
+ubus-cli WiFi.AccessPoint.3.BridgeInterface="br-lan"
+ubus-cli WiFi.AccessPoint.3.MultiAPType="FronthaulBSS"
+ubus-cli WiFi.AccessPoint.3.Enable=1
+
+# Configure : Radio 2 Backhaul
+ubus-cli WiFi.SSID.6.SSID="PRPLOS-BH"
+ubus-cli WiFi.AccessPoint.4.Security.KeyPassPhrase="prplmesh"
+ubus-cli WiFi.AccessPoint.4.BridgeInterface="br-lan"
+ubus-cli WiFi.AccessPoint.4.MultiAPType="BackhaulBSS"
+ubus-cli WiFi.AccessPoint.4.Enable=1
+----
+
+**4. Configure Radio 3 (6GHz) Fronthaul and Backhaul BSS**
+
+[source,sh]
+----
+# Configure : Radio 3 Fronthaul
+ubus-cli WiFi.SSID.7.SSID="PRPLOS-FH"
+ubus-cli WiFi.AccessPoint.5.Security.KeyPassPhrase="prplmesh"
+ubus-cli WiFi.AccessPoint.5.BridgeInterface="br-lan"
+ubus-cli WiFi.AccessPoint.5.MultiAPType="FronthaulBSS"
+ubus-cli WiFi.AccessPoint.5.Enable=1
+
+# Configure : Radio 3 Backhaul
+ubus-cli WiFi.SSID.9.SSID="PRPLOS-BH"
+ubus-cli WiFi.AccessPoint.6.Security.KeyPassPhrase="prplmesh"
+ubus-cli WiFi.AccessPoint.6.BridgeInterface="br-lan"
+ubus-cli WiFi.AccessPoint.6.MultiAPType="BackhaulBSS"
+ubus-cli WiFi.AccessPoint.6.Enable=1
+----
+
+Here:
+
+* PRPLOS-FH is used by Wi-Fi clients
+* PRPLOS-BH is used by Repeater's for Mesh backhaul connection.
+
+**4. Start prplMesh in Gateway mode**
+
+[source,sh]
+----
+service prplmesh gateway_mode
+service prplmesh status
+----
+
+Here:
+
+* **gateway_mode** starts Controller and Agent process in BPI-R4 #1 for Mesh formation.
+* **status** is used to verify the prplMesh status
+
+== Step 2: Configure BPI-R4 #2 as Repeater
+
+On **BPI-R4 #2**, we need to disable wired backhaul, enable the STA interfaces on all
+radios, and start prplMesh in repeater mode.
+
+**1. Disable wired backhaul**
+
+[source,sh]
+----
+# set Bridge
+ubus-cli WiFi.AccessPoint.*.BridgeInterface="br-lan"
+
+uci set prplmesh.config.backhaul_wire_iface='none'
+uci set prplmesh.config.wired_backhaul='0'
+uci commit prplmesh
+
+----
+
+Setting `wired_backhaul='0'` and `backhaul_wire_iface='none'` tells prplMesh to
+use Wi-Fi exclusively for backhaul. This ensures the WPS onboarding flow is used
+to establish the backhaul connection.
+
+**2. Enable all EndPoint STA interfaces**
+
+[source,sh]
+----
+ubus-cli WiFi.SSID.*.MLDUnit=-1
+ubus-cli WiFi.EndPoint.*.MultiAPEnable=1
+ubus-cli WiFi.EndPoint.*.Enable=1
+----
+
+`WiFi.EndPoint` objects represent the STA interface on each radio. Setting
+`MultiAPEnable=1` marks them as EasyMesh backhaul STAs and enabling them brings
+up the STA interfaces on all three radios, ready to associate to the Gateway's
+BackhaulBSS after WPS onboarding.
+
+**4. Start prplMesh in Repeater mode**
+
+[source,sh]
+----
+service prplmesh repeater_mode
+service prplmesh status
+----
+
+Here:
+
+* **repeater_mode** starts the Agent process in BPI-R4 #2 for Mesh formation.
+* **status** is used to verify the prplMesh status
+
+== Step 3: Onboard the Repeater to the Gateway via WPS
+
+With both boards running, the Repeater needs to establish its backhaul connection
+to the Gateway. prplMesh uses **WPS Push Button Configuration (PBC)** to exchange
+the BackhaulBSS credentials and trigger EasyMesh onboarding.
+
+Once WPS completes, the Repeater's STA associates to the Gateway's BackhaulBSS.
+The Controller then initiates **AP Autoconfiguration**, pushing the FronthaulBSS
+SSID, passphrase, and radio settings to the Agent automatically.
+
+=== 3.1 Trigger WPS on the Gateway (BPI-R4 #1)
+
+Start WPS on one of the Gateway's Access Points - either the 2GHz or 5GHz radio
+
+[source,sh]
+----
+# Trigger WPS on 2GHz Access Point
+ubus call WiFi.AccessPoint.1.WPS InitiateWPSPBC
+----
+
+[source,sh]
+----
+# Trigger WPS on 5GHz Access Point
+ubus call WiFi.AccessPoint.3.WPS InitiateWPSPBC
+----
+
+=== 3.2 Trigger WPS on the Repeater (BPI-R4 #2)
+
+Immediately after triggering WPS on the Gateway, run the corresponding command on
+the Repeater using the same band (2.4 GHz or 5 GHz) as used on the Controller
+
+[source,sh]
+----
+# Trigger WPS on 2GHz EndPoint
+ubus call WiFi.EndPoint.1.WPS pushButton
+----
+
+[source,sh]
+----
+# Trigger WPS on 5GHz EndPoint
+ubus call WiFi.EndPoint.2.WPS pushButton
+----
+
+Once WPS completes, the Repeater's STA associates to the BackhaulBSS. The Controller
+then detects the new Agent and pushes the Fronthaul configuration to it via
+AP Autoconfiguration.
+
+== Step 4: Verify prplMesh Formation
+
+After onboarding, verify the prplMesh network topology on **BPI-R4 #1 (Gateway)**
+using `beerocks_cli`
+
+[source,sh]
+----
+/opt/prplmesh/bin/beerocks_cli -c bml_conn_map
+----
+
+A successful output shows the Gateway and the onboarded Repeater node
+along with its radio interfaces (2GHz, 5GHz, 6GHz), confirming the
+EasyMesh network is operational.
+
+To verify that AP Autoconfiguration has propagated the Fronthaul SSID from the
+Gateway to the Repeater, check the SSID on both boards
+
+* On BPI-R4 #1 (Gateway):
+
+[source,sh]
+----
+root@prplOS:/# iw dev | grep ssid
+        ssid PRPLOS-FH     # 2GHz Fronthaul
+        ssid PRPLOS-FH     # 5GHz Fronthaul
+        ssid PRPLOS-FH     # 6GHz Fronthaul
+        ssid PRPLOS-BH     # 2GHz Backhaul
+        ssid PRPLOS-BH     # 5GHz Backhaul
+        ssid PRPLOS-BH     # 6GHz Backhaul
+----
+
+* On BPI-R4 #2 (Repeater):
+
+[source,sh]
+----
+root@prplOS:~# iw dev | grep ssid
+        ssid PRPLOS-FH     # 2GHz Fronthaul
+        ssid PRPLOS-FH     # 5GHz Fronthaul
+        ssid PRPLOS-FH     # 6GHz Fronthaul
+        ssid PRPLOS-BH     # 2GHz Backhaul
+        ssid PRPLOS-BH     # 5GHz Backhaul
+        ssid PRPLOS-BH     # 6GHz Backhaul
+----
+
+The same Fronthaul SSID on both boards confirms that AP Autoconfiguration has
+completed successfully. Wi-Fi clients can now connect to `PRPLOS-FH` on either
+board and roam between them seamlessly.
+
+== Unlocking New Explorations in prplMesh
+
+We have successfully set up a prplMesh network between two Banana Pi R4
+boards running prplOS.
+
+With the mesh successfully established, this opens the way to explore
+advanced features such as client steering, roaming, wired backhaul, and
+backhaul optimization, paving the way for further experimentation and
+innovation.
